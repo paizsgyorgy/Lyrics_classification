@@ -1,19 +1,24 @@
 ### Load necessary packages for the program to run
+import csv
+import os
+import re
+import sys
+import time
+
+import numpy as np
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup as soup
-import time
-import pandas as pd
-import numpy as np
-import re
-import os
 from tqdm import tqdm
+
 
 ### Create user defined function for scraping lyrics
 def get_lyrics(urls):
     """
-    This function takes a urls from an artist on Lyrics.com and outputs a dataframe including all its songs lyrics
+    This function takes a urls from an artist on Lyrics.com and
+    outputs a dataframe including all its songs lyrics
     """
- 
+
     ## Download all the lyrics for all the songs listed from the artist
     lyrics = []
 
@@ -34,7 +39,8 @@ def get_lyrics(urls):
 
     ## Create a dataframe out of the three lists
 
-    df = pd.DataFrame({'URL':['https://www.lyrics.com' + i for i in urls],'Title':titles, 'Lyrics': lyrics})
+    df = pd.DataFrame({'URL':['https://www.lyrics.com' + i for i in urls],
+                       'Title':titles, 'Lyrics': lyrics})
 
     return df
 
@@ -42,7 +48,8 @@ def get_lyrics(urls):
 ### Initiate user search and prompt user for input
 user_search = input('What do you want to search for?')
 
-### Strip user input and replace user input whitespaces with '%20' that is used as space on Lyrics.com
+### Strip user input and replace user input whitespaces with
+### '%20' that is used as space on Lyrics.com
 user_search = user_search.strip()
 user_search = re.sub('( ){1,}', '%20', user_search)
 user_search = user_search.lower()
@@ -64,8 +71,10 @@ for i in a:
         artist_urls.append('https://www.lyrics.com/' + i.get('href'))
         artist_names.append(i.get('title'))
 
-## Create options dataframe (there are duplicates and we want to select only the first nine occurances)
-artist_opts = pd.DataFrame({'URL':artist_urls[0:18:2],'Name':artist_names[0:18:2]})
+## Create options dataframe (there are duplicates and
+## we want to select only the first nine occurances)
+artist_opts = pd.DataFrame({'URL': artist_urls[0:18:2],
+                            'Name': artist_names[0:18:2]})
 
 ## Print out each element in my artist_names list for the user to choose from
 print()
@@ -73,22 +82,34 @@ print('The following artists were found on Lyrics.com for your search:')
 for i, name in enumerate(artist_opts['Name']):
     print(str(i+1) + ') ' + str(name))
 
-print()
-
-## Prompt user for input and confirm the input of the user is among the listed options
+## Prompt user for input and confirm the input of the user is among
+## the listed options
 while True:
+    user_selection = input('\nPlease type the number of the artist you want to load lyrics from: ')
     try:
-        user_selection = input('Please type the number of the artist you want to load lyrics from: ')
         if int(user_selection) in list((artist_opts.index.values + 1)):
             break
         else:
             raise ValueError
     except ValueError:
-        print("Not a valid option! Please try again ...")
-        
+        print("\nNot a valid option! Please try again ...")
+
+### Assign artist name to a new variable
+artist_name = artist_opts.iloc[int(user_selection)-1, 1].strip()
+
+### Write code to check if artist is already in our database
+lyricsDB = csv.reader(open('Data/Lyrics_DB.csv', "r"), delimiter=",")
+
+for row in lyricsDB:
+    if artist_name == row[0]:
+        sys.exit('\nThis artist already exists in the database and lyrics are loaded in the Data/Artists folder. Quitting program...')
+    else:
+        break
+
+print('\nThis is a new artist...program continues')
+
 ### Print an empty line and then the user selected artist name
-print()
-print(f'Great, I will search lyrics for {artist_opts.iloc[int(user_selection)-1, 1]}')
+print(f'\nI will search lyrics from {artist_name}')
 
 ### Save selected artist url in artist_url variable
 artist_url = artist_opts.iloc[int(user_selection)-1, 0]
@@ -115,45 +136,51 @@ est = len(urls) * 3
 est_min = est // 60
 est_sec = est % 60
 print()
-print(f'It will take approximately {est_min} minutes {est_sec} seconds to load all {len(urls)} songs from this artist.')
+print(f'It will take approximately {est_min} minutes {est_sec} seconds to load\
+      all {len(urls)} songs from this artist.')
 print()
 
 while True:
     try:
-        confirm = input('Do you want to continue? (Y/N)')
-        if confirm in ['Y','N']:
+        confirm = input('Do you want to continue?')
+        if confirm.lower().strip()[0] in ['y', 'n']:
             break
         else:
             raise ValueError
     except ValueError:
-        print("Not a valid option! Please try again with Y or N...")
+        print("Not a valid input! Please try again with 'yes' or 'no'...")
 
-if confirm == 'N':
+if confirm.lower().strip()[0] == 'n':
     print('Okay then, quitting the program...')
     quit()
 
-else:  
-    ### Run the user defined function that scrapes the website for lyrics and puts it into a dataframe
+else:
+    ### Run the user defined function that scrapes the website for
+    ### lyrics and puts it into a dataframe
     ### A tqdm progress bar is included in the defined function above
     lyrics = get_lyrics(urls)
+    lyrics['Artist'] = [artist_name] * len(lyrics)
+    lyrics = lyrics[['Artist', 'Title', 'Lyrics', 'URL']]
 
     ### Print message
     print()
     print('All lyrics loaded into dataframe.')
 
     ### Strip down the artist name to be used for filename
-    string = artist_opts.iloc[int(user_selection)-1, 1]
-    artist_shortened = ''.join(e for e in string if e.isalnum())
+    artist_shortened = ''.join(e for e in artist_name if e.isalnum())
 
-    ### Write out dataframe to a csv output file
+    ### Append content of dataframe to the local database
+    with open('Data/Lyrics_DB.csv', 'a') as f:
+        lyrics.to_csv(f, header=False, index=False)
+
+    ### Write out dataframe to a csv output file as well
     filename = f'{artist_shortened}_lyrics.csv'
-    lyrics.to_csv(filename)
+    lyrics.to_csv(f'Data/Artists/{filename}', index=False)
 
     dirpath = os.getcwd()
     filepath = dirpath + '/' + filename
 
     ### Print message
-    print()
-    print(f'CSV file created with all lyrics for artist {string}.')
+    print(f'\nThe Lyrics database has been ammended with selected artist')
+    print(f'CSV file created with all lyrics from {artist_name}.')
     print(f'The file is saved in the following location:  {filepath}')
-    print()
