@@ -97,7 +97,7 @@ while True:
 ### Assign artist name to a new variable
 artist_name = artist_opts.iloc[int(user_selection)-1, 1].strip()
 
-### Write code to check if artist is already in our database
+### Write code to check if artist is already in our "database"
 lyricsDB = csv.reader(open('Data/Lyrics_DB.csv', "r"), delimiter=",")
 
 for row in lyricsDB:
