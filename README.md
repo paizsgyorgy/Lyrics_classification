@@ -1,7 +1,7 @@
 # Lyrics classification
 **A customised command-line interface with a lyrics downloader and a Naive Bayes lyrics classification module that is capable of telling the user which artist the user input most likely belongs to.**
 <br></br>
-## Usage (WARNING: this program has not been extensively tested):
+## Usage (WARNING: please use with caution as this program has not been tested):
 
 1. Git clone this repository to your computer to get started
 
